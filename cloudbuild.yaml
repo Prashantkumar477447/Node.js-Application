@@ -5,7 +5,7 @@ steps:
       [
         'build',
         '-t', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$COMMIT_SHA',
-        'app'
+        '.'
       ]
 
   # Step 2: Push Docker Image
