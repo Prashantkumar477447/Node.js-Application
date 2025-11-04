@@ -12,10 +12,18 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
-        'push', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$COMMIT_SHA'
+        'push',
+        'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$COMMIT_SHA'
       ]
 
-  # Step 3: Update image in Kubernetes deployment
+  # Step 3: Apply Kubernetes manifests (creates Deployment + Service if missing)
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', 'k8s/']
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=asia-south1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=nodejs-cluster'
+
+  # Step 4: Update image in Kubernetes Deployment
   - name: 'gcr.io/cloud-builders/kubectl'
     args:
       [
@@ -26,15 +34,8 @@ steps:
       - 'CLOUDSDK_COMPUTE_ZONE=asia-south1-a'
       - 'CLOUDSDK_CONTAINER_CLUSTER=nodejs-cluster'
 
-  # Step 4: Apply Kubernetes manifests
-  - name: 'gcr.io/cloud-builders/kubectl'
-    args: ['apply', '-f', 'k8s/']
-    env:
-      - 'CLOUDSDK_COMPUTE_ZONE=asia-south1-a'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=nodejs-cluster'
-
 images:
   - 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$COMMIT_SHA'
+
 options:
   logging: CLOUD_LOGGING_ONLY
-
