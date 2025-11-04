@@ -35,3 +35,6 @@ steps:
 
 images:
   - 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$COMMIT_SHA'
+options:
+  logging: CLOUD_LOGGING_ONLY
+
