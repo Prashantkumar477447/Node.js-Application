@@ -1,0 +1,12 @@
+{
+  "name": "gke-styled-app",
+  "version": "1.0.0",
+  "description": "Styled Node.js app deployed on GKE using Cloud Build CI/CD",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
