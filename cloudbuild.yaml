@@ -9,16 +9,16 @@ steps:
         'app'
       ]
 
-  # Step 2: Push Docker Image to Artifact Registry
+  # Step 2: Push Docker Image
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'push', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$COMMIT_SHA'
       ]
 
-  # Step 3: Apply Kubernetes manifests
+  # Step 3: Apply Kubernetes manifests (if inside app/k8s/)
   - name: 'gcr.io/cloud-builders/kubectl'
-    args: ['apply', '-f', 'k8s/']
+    args: ['apply', '-f', 'app/k8s/']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=asia-south1-a'
       - 'CLOUDSDK_CONTAINER_CLUSTER=nodejs-cluster'
