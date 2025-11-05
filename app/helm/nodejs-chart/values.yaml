@@ -1,0 +1,31 @@
+replicaCount: 2
+
+appName: nodejs-app
+
+image:
+  repository: asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8080
+
+containerPort: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  hosts:
+    - host: ""    # fill with your domain like nodeapp.example.com if available
+      paths:
+        - path: /
+          pathType: Prefix
+
+readinessProbe:
+  path: /
+  initialDelaySeconds: 5
+  periodSeconds: 10
