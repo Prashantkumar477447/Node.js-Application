@@ -17,4 +17,10 @@ spec:
         image: asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:latest
         ports:
         - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
 
