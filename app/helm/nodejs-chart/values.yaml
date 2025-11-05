@@ -20,7 +20,7 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: nginx
   hosts:
-    - host: ""    # fill with your domain like nodeapp.example.com if available
+    - host: "34.100.201.242.nip.io"    # fill with your domain like nodeapp.example.com if available
       paths:
         - path: /
           pathType: Prefix
