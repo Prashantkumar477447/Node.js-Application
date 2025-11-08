@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: nodejs-app
-        image: asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$BUILD_ID
+        image: asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:BUILD_ID_PLACEHOLDER
         ports:
         - containerPort: 8080
         readinessProbe:
