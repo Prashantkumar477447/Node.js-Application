@@ -1,10 +1,11 @@
 steps:
-  # Step 1: Build Docker Image
+  # Step 1: Build Docker Image (force rebuild)
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'build',
-        '-t', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$COMMIT_SHA',
+        '--no-cache',
+        '-t', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$BUILD_ID',
         '-f', 'app/Dockerfile',
         'app'
       ]
@@ -13,10 +14,10 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
-        'push', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$COMMIT_SHA'
+        'push', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$BUILD_ID'
       ]
 
-  # Step 3: Apply Kubernetes manifests (if inside app/k8s/)
+  # Step 3: Apply Kubernetes manifests
   - name: 'gcr.io/cloud-builders/kubectl'
     args: ['apply', '-f', 'app/k8s/']
     env:
@@ -28,14 +29,14 @@ steps:
     args:
       [
         'set', 'image', 'deployment/nodejs-app',
-        'nodejs-app=asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$COMMIT_SHA'
+        'nodejs-app=asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$BUILD_ID'
       ]
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=asia-south1-a'
       - 'CLOUDSDK_CONTAINER_CLUSTER=nodejs-cluster'
 
 images:
-  - 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$COMMIT_SHA'
+  - 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$BUILD_ID'
 
 options:
   logging: CLOUD_LOGGING_ONLY
