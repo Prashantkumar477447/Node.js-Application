@@ -1,277 +1,423 @@
-# 🚀 Node.js Application Monitoring using Prometheus, Grafana, and Argo CD on GKE
+# 🚀 Node.js Application Deployment on GKE with CI/CD, Monitoring & Ingress
 
----
+## 🧩 Project Overview
 
-## 📘 Overview
+This project demonstrates a **complete DevOps workflow** — deploying a containerized **Node.js application** on **Google Kubernetes Engine (GKE)** with:
 
-This project demonstrates how to **deploy and monitor a Node.js application** on **Google Kubernetes Engine (GKE)** using:
-
-* **Prometheus** and **Grafana** for observability
+* **Cloud Build** for CI/CD automation
+* **Artifact Registry** for image storage
+* **Helm** for packaging Kubernetes manifests
 * **Argo CD** for GitOps-based deployment
-* **Helm** for managing Kubernetes charts
-
-The setup enables **real-time metrics visualization** (CPU, memory, and HTTP requests) and **automated GitOps synchronization**.
+* **Prometheus + Grafana** for monitoring
+* **Ingress Controller** for external access
 
 ---
 
-## 🧩 Architecture Diagram
+## ☁️ Architecture Diagram
 
 ```
-Developer → GitHub Repo (YAMLs + Helm)
-        ↓
-   Argo CD (GitOps)
-        ↓
-   GKE Cluster
-        ↓
-   Prometheus + Grafana Stack
-        ↓
-   Node.js Application Metrics Dashboard
+Developer → GitHub → Cloud Build → Artifact Registry → Argo CD → GKE Cluster
+                                        ↑                      ↓
+                                Prometheus & Grafana <—— Node.js App
+                                               ↑
+                                          Ingress Access
 ```
-![WhatsApp Image 2025-11-08 at 15 14 39_aa5c57f8](https://github.com/user-attachments/assets/7ff06e6a-94f4-4be4-96d9-4ae009952955)
+![WhatsApp Image 2025-11-08 at 15 34 34_cc68e5c7](https://github.com/user-attachments/assets/deee466e-02b9-43fd-b8c0-374cf6e16af2)
 
 ---
 
-## 🧰 Tools & Technologies
 
-| Tool                               | Purpose                                             |
-| ---------------------------------- | --------------------------------------------------- |
-| **GKE (Google Kubernetes Engine)** | Kubernetes cluster for running workloads            |
-| **Helm**                           | Manage Prometheus, Grafana, and Node.js deployments |
-| **Argo CD**                        | Continuous Delivery (GitOps model)                  |
-| **Prometheus**                     | Metrics collection                                  |
-| **Grafana**                        | Visualization of metrics                            |
-| **Node.js**                        | Sample web application                              |
+### **STEP 1 — Create GCP Project**
+
+1. Go to the **Google Cloud Console** → Create a new project.
+2. Enable these APIs:
+
+   * Kubernetes Engine API
+   * Artifact Registry API
+   * Cloud Build API
 
 ---
 
-## ⚙️ Step-by-Step Setup
-
-### 🧱 Step 1 — Create GKE Cluster
+### **STEP 2 — Create Artifact Registry**
 
 ```bash
-gcloud container clusters create monitoring-cluster \
-  --num-nodes=3 \
-  --zone=asia-south1-b
+gcloud artifacts repositories create hello-world-repo \
+  --repository-format=docker \
+  --location=asia-south1 \
+  --description="Docker repo for Node.js app"
 ```
+![WhatsApp Image 2025-11-04 at 14 59 32_4a2ef9ed](https://github.com/user-attachments/assets/34d44f2b-88db-4cdd-be01-eda4b5ce183d)
 
-Get cluster credentials:
+---
+
+### **STEP 3 — Create and Prepare GKE Cluster**
 
 ```bash
-gcloud container clusters get-credentials monitoring-cluster --zone asia-south1-b
+gcloud container clusters create nodejs-cluster \
+  --zone=asia-south1-a \
+  --num-nodes=2
+```
+
+Then connect to the cluster:
+
+```bash
+gcloud container clusters get-credentials nodejs-cluster --zone asia-south1-a
 ```
 
 ---
 
-### 📦 Step 2 — Create Namespace for Monitoring
+### **STEP 4 — Create the Node.js App**
 
-```bash
-kubectl create namespace monitoring
-```
-
----
-
-### 📊 Step 3 — Add Helm Repository and Update
-
-```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-```
-
----
-
-### 🧠 Step 4 — Install kube-prometheus-stack using Helm
-
-```bash
-helm install monitoring-stack prometheus-community/kube-prometheus-stack \
-  --namespace monitoring
-```
-
-Confirm all resources are running:
-
-```bash
-kubectl get pods -n monitoring
-```
-
----
-
-### 🖥️ Step 5 — Access Grafana Dashboard
-
-Forward Grafana service:
-
-```bash
-kubectl port-forward svc/monitoring-stack-grafana -n monitoring 3000:80
-```
-
-Now open in your browser:
-👉 **[http://localhost:3000](http://localhost:3000)**
-
-* Username: `admin`
-* Password: `prom-operator`
-
----
-
-### ⚙️ Step 6 — Verify Prometheus is Running
-
-Forward Prometheus service:
-
-```bash
-kubectl port-forward svc/monitoring-stack-kube-prom-prometheus -n monitoring 9090:9090
-```
-
-Check in browser:
-👉 **[http://localhost:9090](http://localhost:9090)**
-
----
-
-### 🌐 Step 7 — Deploy Node.js Application
-
-**Directory Structure:**
+Project structure:
 
 ```
 Node.js-Application/
-├── app/
-│   ├── Dockerfile
-│   ├── index.js
-│   ├── package.json
-│   ├── helm/nodejs-chart/
-│   └── monitoring/servicemonitor-nodejs.yaml
+└── app/
+    ├── Dockerfile
+    ├── package.json
+    └── index.js
 ```
 
-**Apply app manifest:**
+**index.js**
 
-```bash
-kubectl apply -f app/monitoring/servicemonitor-nodejs.yaml
+```js
+const express = require('express');
+const app = express();
+const port = 3000;
+app.get('/', (req, res) => res.send('Hello from Node.js on GKE!'));
+app.listen(port, () => console.log(`App running on port ${port}`));
+```
+
+**package.json**
+
+```json
+{
+  "name": "nodejs-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": { "express": "^4.18.2" }
+}
+```
+
+**Dockerfile**
+
+```dockerfile
+FROM node:18
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["node", "index.js"]
 ```
 
 ---
 
-### 🔗 Step 8 — Connect Argo CD to GKE
+### **STEP 5 — Create Cloud Build Pipeline**
 
-#### Install Argo CD
+**cloudbuild.yaml**
+
+```yaml
+steps:
+  # Step 1: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build', '-t', 'asia-south1-docker.pkg.dev/$PROJECT_ID/hello-world-repo/nodejs-app:$COMMIT_SHA',
+        '.'
+      ]
+
+  # Step 2: Push Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'push', 'asia-south1-docker.pkg.dev/$PROJECT_ID/hello-world-repo/nodejs-app:$COMMIT_SHA'
+      ]
+
+images:
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/hello-world-repo/nodejs-app:$COMMIT_SHA'
+```
+
+Trigger this in **Cloud Build → Triggers** to build on every Git commit.
+![WhatsApp Image 2025-11-04 at 14 58 13_efae9bd9](https://github.com/user-attachments/assets/a1332a97-a9f9-4899-9139-26d340c8a08a)
+![WhatsApp Image 2025-11-04 at 14 58 51_c51816f7](https://github.com/user-attachments/assets/3cba9813-3ee8-4fea-b86a-3680dc576d9e)
+
+
+
+---
+
+### **STEP 6 — Helm Chart for Deployment**
+
+Create:
+
+```
+Node.js-Application/app/helm/nodejs-chart/
+├── Chart.yaml
+├── values.yaml
+└── templates/
+    ├── deployment.yaml
+    ├── service.yaml
+```
+
+**Chart.yaml**
+
+```yaml
+apiVersion: v2
+name: nodejs-chart
+version: 0.1.0
+```
+
+**values.yaml**
+
+```yaml
+replicaCount: 2
+image:
+  repository: asia-south1-docker.pkg.dev/YOUR_PROJECT_ID/hello-world-repo/nodejs-app
+  tag: latest
+service:
+  type: ClusterIP
+  port: 3000
+```
+
+**deployment.yaml**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejs-deployment
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: nodejs-app
+  template:
+    metadata:
+      labels:
+        app: nodejs-app
+    spec:
+      containers:
+        - name: nodejs-app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 3000
+```
+
+**service.yaml**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodejs-service
+spec:
+  selector:
+    app: nodejs-app
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP
+```
+
+---
+
+### **STEP 7 — Set Up Ingress Controller**
+
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install ingress-controller ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
+```
+
+**Create Ingress Resource**
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nodejs-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nodejs-service
+                port:
+                  number: 3000
+```
+
+---
+
+### **STEP 8 — Deploy Using Argo CD**
+
+Install Argo CD:
 
 ```bash
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 ```
 
-#### Port Forward Argo CD
+Port-forward Argo CD UI:
 
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
-Access at 👉 **[https://localhost:8080](https://localhost:8080)**
+Login at: [https://localhost:8080](https://localhost:8080)
 
 ---
 
-### 🔐 Step 9 — Login to Argo CD
+### **STEP 9 — Create Argo CD Application**
 
-Get initial password:
+In Argo CD GUI → **NEW APP**
+
+| Field            | Value                                                            |
+| ---------------- | ---------------------------------------------------------------- |
+| Application Name | nodejs-app                                                       |
+| Project          | default                                                          |
+| Repository URL   | your GitHub repo                                                 |
+| Path             | app/helm/nodejs-chart                                            |
+| Cluster URL      | [https://kubernetes.default.svc](https://kubernetes.default.svc) |
+| Namespace        | default                                                          |
+| Sync Policy      | Automatic                                                        |
+
+Click **Create** → **Sync** → ✅ **Deployed**
+
+---
+
+### **STEP 10 — Verify Deployment**
 
 ```bash
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+kubectl get all
+kubectl get ingress
 ```
 
-Login with:
-
-* Username: `admin`
-* Password: *(from above command)*
+Visit the external IP from ingress.
 
 ---
 
-### 🧭 Step 10 — Create Argo CD Application (GUI)
+### **STEP 11 — Add Monitoring Stack (Prometheus + Grafana)**
 
-In Argo CD UI → **NEW APP**
-
-| Field                | Value                                                |
-| -------------------- | ---------------------------------------------------- |
-| **Application Name** | `monitoring-stack`                                   |
-| **Project**          | `default`                                            |
-| **Repository URL**   | `https://prometheus-community.github.io/helm-charts` |
-| **Chart**            | `kube-prometheus-stack`                              |
-| **Version**          | `79.1.1`                                             |
-| **Namespace**        | `monitoring`                                         |
-| **Sync Policy**      | `Automatic`                                          |
-
-Click **Create** ✅
-If it says *“spec is different”*, reapply with **Upsert** (Enable `Replace/Upsert` in options).
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install monitoring-stack prometheus-community/kube-prometheus-stack -n monitoring --create-namespace
+```
 
 ---
 
-### 📈 Step 11 — Import Grafana Dashboard
+### **STEP 12 — Access Grafana Dashboard**
 
-1. Go to Grafana → **Dashboards → Import**
-2. Enter ID: `1860` (Node Exporter Full)
-3. Click **Load**
-4. Select Prometheus datasource → **Import**
+```bash
+kubectl port-forward svc/monitoring-stack-grafana -n monitoring 3000:80
+```
 
-If “origin not allowed” error occurs, ensure:
-
-* Grafana is accessible via **port-forward**
-* Use `localhost:3000` (not external IP)
-* Refresh browser after redoing port-forward
+Open [http://localhost:3000](http://localhost:3000)
+Login → `admin / prom-operator`
 
 ---
 
-### 📊 Step 12 — Visualize Metrics
+### **STEP 13 — Add Prometheus as Data Source**
 
-Now open Grafana → Dashboards → **Node Exporter Full**
-
-You’ll see:
-
-* CPU & Memory Usage
-* Disk I/O
-* Active Processes
-* Network Traffic
+1. In Grafana → Connections → Data Sources → Add Prometheus.
+2. URL: `http://monitoring-stack-kube-prometheus-sta-prometheus.monitoring.svc.cluster.local:9090`
+3. Save & Test ✅
 
 ---
 
-### 📡 Step 13 — Query Application Metrics
+### **STEP 14 — Import Node Exporter Dashboard**
 
-In Grafana → **Explore → Prometheus Datasource**
+Go to Dashboards → Import → enter ID **1860** → Import (Overwrite).
+Dashboard: **Node Exporter Full** now available.
 
-Run this query:
+---
 
-```promql
+### **STEP 15 — Add Node.js Service Monitor**
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nodejs-servicemonitor
+  labels:
+    release: monitoring-stack
+spec:
+  selector:
+    matchLabels:
+      app: nodejs-app
+  endpoints:
+    - port: 3000
+      interval: 30s
+```
+
+Apply:
+
+```bash
+kubectl apply -f servicemonitor-nodejs.yaml -n monitoring
+```
+
+---
+
+### **STEP 16 — Validate Prometheus Targets**
+
+Open Prometheus UI:
+
+```bash
+kubectl port-forward svc/monitoring-stack-kube-prometheus-sta-prometheus -n monitoring 9090:9090
+```
+
+Then visit [http://localhost:9090/targets](http://localhost:9090/targets).
+
+---
+
+### **STEP 17 — Grafana Metrics Visualization**
+
+Use query:
+
+```
 rate(http_requests_total[1m])
 ```
 
-You’ll see your Node.js app’s traffic in real-time! 🎯
+You’ll see live Node.js traffic metrics 🎯
 
 ---
 
-## 🧠 Common Errors & Fixes
+### **STEP 18 — Argo CD + Monitoring Integration**
 
-| Error                | Cause                         | Fix                                 |
-| -------------------- | ----------------------------- | ----------------------------------- |
-| `service not found`  | Wrong service name            | Run `kubectl get svc -n monitoring` |
-| `origin not allowed` | Invalid Grafana access origin | Use correct localhost port          |
-| `spec is different`  | Argo CD already has app       | Use Upsert flag                     |
+Add `argocd-servicemonitor.yaml` to monitor Argo CD performance (optional).
 
 ---
 
-## ✅ Final Verification
+### **STEP 19 — Test End-to-End CI/CD**
 
-| Component   | Status Command                   | Expected            |
-| ----------- | -------------------------------- | ------------------- |
-| Grafana     | `kubectl get pods -n monitoring` | Running             |
-| Prometheus  | `kubectl get svc -n monitoring`  | Port 9090 available |
-| Argo CD     | `kubectl get pods -n argocd`     | All pods running    |
-| Node.js App | `kubectl get pods -n default`    | Running pod         |
-| Dashboard   | Grafana → Dashboards             | Metrics visible     |
+Push a new commit → Cloud Build triggers → builds Docker image → pushes to Artifact Registry → Argo CD auto-syncs → app auto-updated in GKE ✅
 
 ---
 
-## 🧾 Summary
+### **STEP 20 — Clean Up**
 
-✅ **Deployed Node.js app** on GKE
-✅ **Configured Prometheus & Grafana** with Helm
-✅ **Connected GitOps via Argo CD**
-✅ **Imported Grafana dashboard for real-time monitoring**
-✅ **Visualized Node.js app metrics using PromQL**
+```bash
+gcloud container clusters delete nodejs-cluster --zone asia-south1-a
+```
+
+## 🔗 Technologies Used
+
+* Google Cloud Build
+* Google Artifact Registry
+* Google Kubernetes Engine
+* Argo CD
+* Helm
+* Prometheus
+* Grafana
+* Ingress Controller
+* Node.js
 
 ---
 
-
-*GitHub → Argo CD → GKE → Prometheus/Grafana → User Dashboard*?
-It’ll make your GitHub repo look very professional.
+Would you like me to include a **diagram (PNG)** showing the CI/CD + monitoring flow (Cloud Build → Argo CD → GKE → Grafana)?
+I can generate it to include at the top of your README.
