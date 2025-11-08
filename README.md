@@ -63,6 +63,10 @@ Then connect to the cluster:
 ```bash
 gcloud container clusters get-credentials nodejs-cluster --zone asia-south1-a
 ```
+![WhatsApp Image 2025-11-04 at 15 00 32_106fb7e2](https://github.com/user-attachments/assets/3086c47c-f09a-477b-bb01-35f3dd16539a)
+![WhatsApp Image 2025-11-04 at 15 01 28_b7bfbc37](https://github.com/user-attachments/assets/7bb06788-414f-46c9-a62f-116f930efcac)
+![WhatsApp Image 2025-11-04 at 15 02 08_5311e246](https://github.com/user-attachments/assets/e5d60862-dc8f-4add-88d7-d151a64c34d8)
+![WhatsApp Image 2025-11-04 at 15 03 11_885fd520](https://github.com/user-attachments/assets/35a31509-0071-413c-a9e6-98cbe9a91928)
 
 ---
 
@@ -219,6 +223,9 @@ spec:
   type: ClusterIP
 ```
 
+![WhatsApp Image 2025-11-05 at 12 54 17_5ee0027c](https://github.com/user-attachments/assets/10c75688-e984-4a48-930a-d5e75ef40e20)
+![WhatsApp Image 2025-11-05 at 12 52 32_1f8bab2c](https://github.com/user-attachments/assets/c25e7503-ddb6-4598-89a7-37a4f54d2635)
+
 ---
 
 ### **STEP 7 — Set Up Ingress Controller**
@@ -250,6 +257,8 @@ spec:
                 port:
                   number: 3000
 ```
+![WhatsApp Image 2025-11-05 at 12 56 03_656f21d0](https://github.com/user-attachments/assets/7da1d7b4-9f03-4972-bb11-192ddfd1d307)
+![WhatsApp Image 2025-11-05 at 12 57 44_8edd42e2](https://github.com/user-attachments/assets/7b741b0a-aefe-4782-9a3e-62805b29dea6)
 
 ---
 
@@ -269,6 +278,8 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
 Login at: [https://localhost:8080](https://localhost:8080)
+![WhatsApp Image 2025-11-04 at 15 42 27_c84f89e1](https://github.com/user-attachments/assets/e220d945-f2d9-406c-8418-c79c3af9a697)
+![WhatsApp Image 2025-11-04 at 15 43 02_1ecad9b3](https://github.com/user-attachments/assets/b48959f3-1b62-43fc-8976-bda4cc3c8fe7)
 
 ---
 
@@ -288,6 +299,9 @@ In Argo CD GUI → **NEW APP**
 
 Click **Create** → **Sync** → ✅ **Deployed**
 
+![WhatsApp Image 2025-11-05 at 12 40 01_42b7cc36](https://github.com/user-attachments/assets/b602119c-7792-473d-8372-f9fd3462f5e4)
+![WhatsApp Image 2025-11-05 at 12 08 15_4b188a02](https://github.com/user-attachments/assets/5f881dd5-4370-4a3c-8b27-f8accea729aa)
+
 ---
 
 ### **STEP 10 — Verify Deployment**
@@ -298,6 +312,8 @@ kubectl get ingress
 ```
 
 Visit the external IP from ingress.
+![WhatsApp Image 2025-11-05 at 12 08 51_1bad195e](https://github.com/user-attachments/assets/b866d200-3aad-47e6-aec4-15c0b8322dd0)
+![WhatsApp Image 2025-11-05 at 12 09 22_d22c4dff](https://github.com/user-attachments/assets/f09649ef-6136-4c51-ae3a-3655600a3a0c)
 
 ---
 
@@ -308,6 +324,9 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo update
 helm install monitoring-stack prometheus-community/kube-prometheus-stack -n monitoring --create-namespace
 ```
+![WhatsApp Image 2025-11-05 at 14 03 06_ff618f8c](https://github.com/user-attachments/assets/966a0e09-4a48-4f6b-9fd4-efd5a9b63f1b)
+![WhatsApp Image 2025-11-05 at 14 01 49_8caa692e](https://github.com/user-attachments/assets/a8c8f436-da16-410e-8668-4a4754043836)
+![WhatsApp Image 2025-11-05 at 16 04 32_97de80ff](https://github.com/user-attachments/assets/66bb5fa4-f605-4c07-89ea-61d6571765b7)
 
 ---
 
@@ -360,6 +379,7 @@ Apply:
 ```bash
 kubectl apply -f servicemonitor-nodejs.yaml -n monitoring
 ```
+![WhatsApp Image 2025-11-05 at 16 17 11_c5c8278e](https://github.com/user-attachments/assets/1a9b615c-8d48-4ddc-ab96-3cee0a93ad76)
 
 ---
 
@@ -384,12 +404,14 @@ rate(http_requests_total[1m])
 ```
 
 You’ll see live Node.js traffic metrics 🎯
+![WhatsApp Image 2025-11-05 at 16 47 30_cefdd7c1](https://github.com/user-attachments/assets/53515b11-7562-4034-96e7-8b8473337393)
 
 ---
 
 ### **STEP 18 — Argo CD + Monitoring Integration**
 
 Add `argocd-servicemonitor.yaml` to monitor Argo CD performance (optional).
+![WhatsApp Image 2025-11-05 at 16 17 11_ae12b3eb](https://github.com/user-attachments/assets/a5498a40-f170-40c2-869e-5770c1b62ffa)
 
 ---
 
