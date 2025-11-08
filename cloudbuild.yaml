@@ -1,11 +1,11 @@
 steps:
-  # Step 1: Build Docker image (force rebuild each time)
+  # Step 1: Build Docker image (force rebuild)
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'build',
         '--no-cache',
-        '-t', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$BUILD_ID',
+        '-t', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:${BUILD_ID}',
         '-f', 'app/Dockerfile',
         'app'
       ]
@@ -14,26 +14,26 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
-        'push', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$BUILD_ID'
+        'push', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:${BUILD_ID}'
       ]
 
-  # Step 3: Substitute the BUILD_ID into Kubernetes YAML
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
+  # Step 3: Replace $BUILD_ID in deployment manifest
+  - name: 'bash'
+    entrypoint: bash
     args:
       [
         '-c',
-        "sed -i 's|$BUILD_ID|${BUILD_ID}|g' app/k8s/deployment.yaml"
+        "sed -i 's|$BUILD_ID|${BUILD_ID}|g' app/k8s/deployment.yaml && cat app/k8s/deployment.yaml"
       ]
 
-  # Step 4: Apply updated Kubernetes manifests
+  # Step 4: Apply manifests to GKE
   - name: 'gcr.io/cloud-builders/kubectl'
     args: ['apply', '-f', 'app/k8s/']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=asia-south1-a'
       - 'CLOUDSDK_CONTAINER_CLUSTER=nodejs-cluster'
 
-  # Step 5: Force rollout restart (ensure pods refresh)
+  # Step 5: Restart rollout to apply new image
   - name: 'gcr.io/cloud-builders/kubectl'
     args: ['rollout', 'restart', 'deployment/nodejs-app']
     env:
@@ -41,7 +41,7 @@ steps:
       - 'CLOUDSDK_CONTAINER_CLUSTER=nodejs-cluster'
 
 images:
-  - 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$BUILD_ID'
+  - 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:${BUILD_ID}'
 
 options:
   logging: CLOUD_LOGGING_ONLY
