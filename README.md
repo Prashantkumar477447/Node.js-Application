@@ -440,6 +440,3 @@ gcloud container clusters delete nodejs-cluster --zone asia-south1-a
 * Node.js
 
 ---
-
-Would you like me to include a **diagram (PNG)** showing the CI/CD + monitoring flow (Cloud Build → Argo CD → GKE → Grafana)?
-I can generate it to include at the top of your README.
