@@ -17,20 +17,27 @@ steps:
         'push', 'asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$BUILD_ID'
       ]
 
-  # Step 3: Apply Kubernetes manifests
+  # Step 3: Apply Kubernetes Manifests
   - name: 'gcr.io/cloud-builders/kubectl'
     args: ['apply', '-f', 'app/k8s/']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=asia-south1-a'
       - 'CLOUDSDK_CONTAINER_CLUSTER=nodejs-cluster'
 
-  # Step 4: Update image in deployment
+  # Step 4: Update Deployment Image to New Tag
   - name: 'gcr.io/cloud-builders/kubectl'
     args:
       [
         'set', 'image', 'deployment/nodejs-app',
         'nodejs-app=asia-south1-docker.pkg.dev/prashant-474308/nodejs-repo/nodejs-app:$BUILD_ID'
       ]
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=asia-south1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=nodejs-cluster'
+
+  # Step 5: Force Kubernetes Rollout (ensures new pods)
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['rollout', 'restart', 'deployment/nodejs-app']
     env:
       - 'CLOUDSDK_COMPUTE_ZONE=asia-south1-a'
       - 'CLOUDSDK_CONTAINER_CLUSTER=nodejs-cluster'
